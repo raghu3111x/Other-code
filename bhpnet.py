@@ -108,7 +108,7 @@ def client_sender(buffer):
             print(response)
 
             # wait for input
-            buffer = raw_input('')
+            buffer = input('')
             buffer += '\n'
             buffer = bytes(buffer,'utf-8')
             # send it off
