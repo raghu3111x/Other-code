@@ -48,7 +48,6 @@
 
 #_________________________________________________________________________________
 
-import os
 import sys
 import socket
 import getopt
@@ -109,7 +108,7 @@ def client_sender(buffer):
             print(response)
 
             # wait for input
-            buffer = input('')
+            buffer = raw_input('')
             buffer += '\n'
             buffer = bytes(buffer,'utf-8')
             # send it off
@@ -140,13 +139,13 @@ def server_loop():
         client_thread.start()
 
 def run_command(command):
-
+    global output
     # trim the newline
     command = command.rstrip()
 
     # run the command and get the output back
     try:
-        output = subprocess.check_output(command,stderr=subprocess.subprocess.STDOUT, shell=True)
+        output = subprocess.check_output(command,stderr=subprocess.STDOUT, shell=True)
 
     except:
         output = "Failed to execute command.\r\n"
@@ -169,7 +168,6 @@ def client_handler(client_socket):
 
         while True:
             data = client_socket.recv(1024)
-            data = data.decode('utf-8')
 
             if not data:
                 break
@@ -197,7 +195,9 @@ def client_handler(client_socket):
     if command:
         while True:
             # show a simple prompt
-            client_socket.send(b'<BHP:#> ')
+            prompt = '<BHP:#> '
+            prompt = bytes(prompt,'utf-8')
+            client_socket.send(prompt)
 
             cmd_buffer = ''
             while '\n' not in cmd_buffer:
