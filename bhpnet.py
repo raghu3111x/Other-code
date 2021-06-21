@@ -48,7 +48,7 @@
 
 #_________________________________________________________________________________
 
-from os import CLD_EXITED
+import os
 import sys
 import socket
 import getopt
