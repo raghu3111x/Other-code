@@ -139,9 +139,10 @@ def server_loop():
         client_thread.start()
 
 def run_command(command):
+    import subprocess
     global output
     # trim the newline
-    command = command.rstrip()
+    command = command.rstrip()  
 
     # run the command and get the output back
     try:
