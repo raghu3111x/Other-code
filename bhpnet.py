@@ -80,6 +80,7 @@ def usage():
     sys.exit(0)
 
 def client_sender(buffer):
+    import socket
     client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
     try:
@@ -121,6 +122,8 @@ def client_sender(buffer):
         client.close()
 
 def server_loop():
+    import socket
+    import threading
     global target
 
     # if target is not defined, we listen on all interfaces
@@ -158,7 +161,7 @@ def client_handler(client_socket):
     global upload
     global execute
     global command
-
+    import os
     # check for upload
     if len(upload_destination):
         
