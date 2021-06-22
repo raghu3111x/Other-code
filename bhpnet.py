@@ -71,7 +71,7 @@ def usage():
     print('-e --execute=file_to_run  - execute the given file upon receiving the connection')
     print('-c --command              - initialize a command shell')
     print('-u --upload=destination   - upon receiving connection upload a file and write to [ destination ]')
-    print(end='\n\n')
+    print()
     print('Examples: ')
     print('bhpnet.py 192.168.0.1 -p 5555 -l -c')
     print('bhpnet.py -t 192.168.0.1 -p 5555 -l -u=c:\\target.exe')
@@ -88,7 +88,7 @@ def client_sender(buffer):
         client.connect((target,port))
 
         if len(buffer):
-            buffer = bytes(buffer,'utf-8')
+            buffer = str.encode(buffer)
             client.send(buffer)
         
         while True:
@@ -111,7 +111,7 @@ def client_sender(buffer):
             # wait for input
             buffer = input('')
             buffer += '\n'
-            buffer = bytes(buffer,'utf-8')
+            buffer = str.encode(buffer)
             # send it off
             client.send(buffer)
 
@@ -146,6 +146,7 @@ def run_command(command):
     global output
     # trim the newline
     command = command.rstrip()  
+    command = str(command)
 
     # run the command and get the output back
     try:
@@ -192,27 +193,28 @@ def client_handler(client_socket):
 
     # check for command execution
     if len(execute):
-
+        execute = str.encode(execute)
         # run the command
         output = run_command(execute)
+        output = str.encode(output)
         client_socket.send(output)
     if command:
         while True:
             # show a simple prompt
             prompt = '<BHP:#> '
-            prompt = bytes(prompt,'utf-8')
+            prompt = str.encode(prompt)
             client_socket.send(prompt)
 
             cmd_buffer = ''
             while '\n' not in cmd_buffer:
                 cmd_buffer += str(client_socket.recv(1024))
-
+                cmd_buffer = str(cmd_buffer)
             # send back the command output 
-            response = run_command(cmd_buffer)
-            response = bytes(response,'utf-8')
+            output = run_command(cmd_buffer)
+            output = str.encode(output)
 
             # send back the response
-            client_socket.send(response)
+            client_socket.send(output)
 
 def main():
     global listen
