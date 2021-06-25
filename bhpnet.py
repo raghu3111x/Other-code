@@ -1,58 +1,10 @@
-#______________________________________________________________________________
-
-# # A simple UDP Client
-
-# target_host = '127.0.0.1'
-# target_port = 80
-
-# client = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
-# client.sendto(b'boom and superboom',(target_host,target_port))
-# data,addrr = client.recvfrom(4096)
-# print(f'data {data} from {addrr}')
-
-#____________________________________________________________________________________
-
-# A simple TCP SERVER
-# import socket 
-# import threading
-
-# bind_ip = '0.0.0.0'
-# bind_port = 9999
-
-# server = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-
-# server.bind((bind_ip,bind_port))
-# server.listen(5)
-
-# print('[*] Listening on %s:%d' %(bind_ip,bind_port))
-
-# # client handling thread
-# def handle_client(client_socket):
-#     request = client_socket.recv(1024)
-    
-#     print('[*] Received: %s ' % request)
-
-#     # send back a packet
-#     client_socket.send(b'ACK! ')
-
-#     client_socket.close()
-
-# while True:
-#     client,addr = server.accept()
-
-#     print('[*] Accepted connection from %s %d' % (addr[0],addr[1]))
-    
-#     # spin up our client thread to handle incoming data
-#     client_handler = threading.Thread(target=handle_client,args=(client,))
-#     client_handler.start()
-
-#_________________________________________________________________________________
-
+#!/usr/bin/python
 import sys
 import socket
 import getopt
 import threading
 import subprocess
+import os
 
 # define some global variable
 listen = False
@@ -88,8 +40,7 @@ def client_sender(buffer):
         client.connect((target,port))
 
         if len(buffer):
-            buffer = str.encode(buffer)
-            client.send(buffer)
+            client.send(buffer.encode('ascii'))
         
         while True:
 
@@ -100,20 +51,24 @@ def client_sender(buffer):
             while recv_len:
 
                 data = client.recv(4096)
+                data = data.decode('ascii')
                 recv_len = len(data)
                 response += str(data)
 
-                if recv_len < 4096:
+                if recv_len < 1024:
                     break
             
             print(response)
+            print()
 
             # wait for input
             buffer = input('')
             buffer += '\n'
-            buffer = str.encode(buffer)
             # send it off
-            client.send(buffer)
+            client.send(buffer.encode('ascii'))
+            logfile = open('log.txt','a')
+            logfile.write('YOU: ' + str(buffer))
+            logfile.close()
 
     except Exception as err:
         print('[*] Exception! Exiting.')
@@ -121,42 +76,24 @@ def client_sender(buffer):
         # tear down the connection
         client.close()
 
-def server_loop():
-    import socket
-    import threading
-    global target
-
-    # if target is not defined, we listen on all interfaces
-    if not len(target):
-        target = '0.0.0.0'
-    server = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-    server.bind((target,port))
-
-    server.listen(5)
-
-    while True:
-        client_socket, addr = server.accept()
-
-        # spin off a thread to handle our new client
-        client_thread = threading.Thread(target=client_handler,args=(client_socket,))
-        client_thread.start()
-
 def run_command(command):
-    import subprocess
+    global cmd_buffer
+    from subprocess import Popen, PIPE
+    cmd_buffer = cmd_buffer.rstrip()
+    #print(cmd_buffer)
+    #print(f'commandddddddd   type:  {type(cmd_buffer)} {cmd_buffer} ')
     global output
     # trim the newline
-    command = command.rstrip()  
-    command = str(command)
-
     # run the command and get the output back
-    try:
-        output = subprocess.check_output(command,stderr=subprocess.STDOUT, shell=True)
-
-    except:
-        output = "Failed to execute command.\r\n"
-
+    stdout = Popen(cmd_buffer,shell=True,stdout=PIPE).stdout
+    output = stdout.read()
+    print('output [--->]' + str(output))
+    
+    
     # send the output back to the client
     return output
+    #client_socket.send(output)
+
 
 def client_handler(client_socket):
     global upload
@@ -198,23 +135,57 @@ def client_handler(client_socket):
         output = run_command(execute)
         output = str.encode(output)
         client_socket.send(output)
+
     if command:
+        global cmd_buffer
         while True:
+            try:
             # show a simple prompt
-            prompt = '<BHP:#> '
-            prompt = str.encode(prompt)
-            client_socket.send(prompt)
+                client_socket.send('<BHPppppp:#> '.encode('ascii'))
 
-            cmd_buffer = ''
-            while '\n' not in cmd_buffer:
-                cmd_buffer += str(client_socket.recv(1024))
-                cmd_buffer = str(cmd_buffer)
-            # send back the command output 
-            output = run_command(cmd_buffer)
-            output = str.encode(output)
+                cmd_buffer = ''
+                while '\n' not in cmd_buffer:
+                    command = client_socket.recv(1024)
+                    command = command.decode('ascii')
+                    command = str(command)
+                    cmd_buffer += command
+                    print(f'received: {cmd_buffer}')
+                # send back the command output 
+                output = run_command(cmd_buffer)
+                #print('function run command')
+                try:
+                    if output == '':
+                        client_socket.send('Command not Found'.encode('ascii'))
 
-            # send back the response
-            client_socket.send(output)
+
+                    else:
+                        client_socket.send(output)
+                        print('output send ...')
+                except Exception as err:
+                    print('err:' + err)
+            except:
+                pass
+
+
+def server_loop():
+    global target
+
+    # if target is not defined, we listen on all interfaces
+    if not len(target):
+        target = '0.0.0.0'
+    server = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+    server.bind((target,port))
+
+    server.listen(5)
+
+    while True:
+        client_socket, addr = server.accept()
+        print(f'[*] Accepted Connection from {addr[0]}:{addr[1]}')
+
+        # spin off a thread to handle our new client
+        client_thread = threading.Thread(target=client_handler,args=(client_socket,))
+        client_thread.start()
+
 
 def main():
     global listen
